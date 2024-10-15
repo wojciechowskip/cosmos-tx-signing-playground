@@ -1,23 +1,11 @@
-import { AminoConverters, isDeliverTxSuccess } from '@cosmjs/stargate';
+import { AminoConverters, AminoTypes, isDeliverTxSuccess, SigningStargateClient, StdFee } from '@cosmjs/stargate';
 import { Registry } from '@cosmjs/proto-signing';
 import {
   TxRaw,
 } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
-import {
-  StdFee,
-  AminoTypes,
-  defaultRegistryTypes,
-  SigningStargateClient,
-  createGovAminoConverters,
-  createIbcAminoConverters,
-  createBankAminoConverters,
-  createStakingAminoConverters,
-  createFeegrantAminoConverters,
-  createDistributionAminoConverters,
-} from '@cosmjs/stargate';
-import { createCustomAuthzConverters } from './converters';
 import { buildGrantMsgForFee, buildGrantMsgForStaking, buildGrantMsgForTransfers } from './messages-builder';
 import { getOfflineSignerAmino } from 'cosmjs-utils';
+import { cosmosProtoRegistry, cosmosAminoConverters } from 'cosmos-js-telescope';
 
 // do not commit! replace with your own private key
 const mnemo = '';
@@ -31,26 +19,16 @@ console.log('Grantee address >>> ', granteeAddress);
 console.log('Granter address >>> ', granterAddress);
 console.log('Validator list address >>> ', validators);
 
-const defaultConverters: AminoConverters = {
-  ...createBankAminoConverters(),
-  ...createDistributionAminoConverters(),
-  ...createFeegrantAminoConverters(),
-  ...createGovAminoConverters(),
-  ...createIbcAminoConverters(),
-  ...createStakingAminoConverters(),
-};
-
 const converters: AminoConverters = {
-  ...defaultConverters,
-  ...createCustomAuthzConverters()
+  ...cosmosAminoConverters
 }
 
 const registry = new Registry([
-  ...defaultRegistryTypes,
+  ...cosmosProtoRegistry
 ]);
 
 const aminoTypes = new AminoTypes({
-  ...converters,
+  ...converters
 });
 
 const createSigningClient = async () => {

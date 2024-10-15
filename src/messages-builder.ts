@@ -1,17 +1,28 @@
 import COSMOS_MESSAGE_TYPE_URL from './cosmos-message-type-url';
-import { MsgGrant } from 'cosmjs-types/cosmos/authz/v1beta1/tx';
-import { Grant } from 'cosmjs-types/cosmos/authz/v1beta1/authz';
-import {
-  AuthorizationType,
-  StakeAuthorization,
-  StakeAuthorization_Validators,
-} from 'cosmjs-types/cosmos/staking/v1beta1/authz';
 import { Coin } from 'cosmjs-types/cosmos/base/v1beta1/coin';
-import { SendAuthorization } from 'cosmjs-types/cosmos/bank/v1beta1/authz';
-import { BasicAllowance } from 'cosmjs-types/cosmos/feegrant/v1beta1/feegrant';
-import { MsgGrantAllowance } from 'cosmjs-types/cosmos/feegrant/v1beta1/tx';
 import { coin } from '@cosmjs/stargate';
 import dayjs from 'dayjs';
+import { cosmos } from 'cosmos-js-telescope';
+
+const {
+  MsgGrant,
+  Grant,
+} = cosmos.authz.v1beta1;
+
+const {
+  StakeAuthorization,
+  AuthorizationType,
+  StakeAuthorization_Validators,
+} = cosmos.staking.v1beta1;
+
+const {
+  SendAuthorization,
+} = cosmos.bank.v1beta1;
+
+const {
+  BasicAllowance,
+  MsgGrantAllowance,
+} = cosmos.feegrant.v1beta1;
 
 const chainType = 'COSMOS';
 
@@ -47,8 +58,7 @@ const getExpirationDate = () => {
   const daysToAdd = 1;
 
   const futureDate = now.add(yearsToAdd, 'year').add(daysToAdd, 'day');
-
-  return BigInt(futureDate.unix());
+  return futureDate.toDate();
 };
 
 export const buildGrantMsgForStaking = (
@@ -56,7 +66,7 @@ export const buildGrantMsgForStaking = (
   granteeAddress: string,
   validatorAddresses: string[],
 ) => {
-  const expiredDateInS = getExpirationDate();
+  const expiredDate = getExpirationDate();
 
   const maxTokens = formatCompoundSpendLimit(
     chainType
@@ -68,9 +78,7 @@ export const buildGrantMsgForStaking = (
       granter: granterAddress,
       grantee: granteeAddress,
       grant: Grant.fromPartial({
-        expiration: {
-          seconds: expiredDateInS,
-        },
+        expiration: expiredDate,
         authorization: {
           typeUrl: COSMOS_MESSAGE_TYPE_URL.STAKE_AUTHORIZATION,
           value: StakeAuthorization.encode(
@@ -92,7 +100,7 @@ export const buildGrantMsgForTransfers = (
   granterAddress: string,
   granteeAddress: string,
 ) => {
-  const expiredDateInS = getExpirationDate();
+  const expiredDate = getExpirationDate();
 
   const spendLimit = formatCompoundSpendLimit(
     chainType
@@ -115,9 +123,7 @@ export const buildGrantMsgForTransfers = (
       granter: granterAddress,
       grantee: granteeAddress,
       grant: Grant.fromPartial({
-        expiration: {
-          seconds: expiredDateInS,
-        },
+        expiration: expiredDate,
         authorization: {
           typeUrl: COSMOS_MESSAGE_TYPE_URL.SEND_AUTHORIZATION,
           value: SendAuthorization.encode(
@@ -130,8 +136,6 @@ export const buildGrantMsgForTransfers = (
 };
 
 export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: string) => {
-  const expiredDateInS = getExpirationDate();
-
   return {
     typeUrl: COSMOS_MESSAGE_TYPE_URL.GRANT_ALLOWANCE,
     value: MsgGrantAllowance.fromPartial({
@@ -142,9 +146,7 @@ export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: stri
         value: BasicAllowance.encode(
           BasicAllowance.fromPartial({
             spendLimit: [getGrantsAmount(chainType)],
-            expiration: {
-              seconds: expiredDateInS,
-            },
+            expiration: getExpirationDate(),
           })
         ).finish(),
       },
