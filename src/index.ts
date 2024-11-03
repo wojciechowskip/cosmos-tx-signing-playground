@@ -69,7 +69,7 @@ const createSigningClient = async () => {
     return Promise.reject(new Error('Offline signer not available'));
   }
 
-  const rpcEndpoint = 'https://go.getblock.io/7f36084966004eae858f28dbdd88a3f5';
+  const rpcEndpoint = 'https://rpc.cosmos.directory/cosmoshub';
 
   return SigningStargateClient.connectWithSigner(rpcEndpoint, offlineSigner, {
     registry,
