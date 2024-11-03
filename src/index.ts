@@ -1,10 +1,11 @@
-import { AminoConverters, AminoTypes, isDeliverTxSuccess, SigningStargateClient, StdFee } from '@cosmjs/stargate';
+import { AminoConverters, AminoTypes, isDeliverTxSuccess, SigningStargateClient, StdFee } from '@liftedinit/stargate';
 import { Registry } from '@cosmjs/proto-signing';
+import { Secp256k1HdWallet } from '@cosmjs/amino';
+import { Slip10RawIndex } from '@cosmjs/crypto';
 import {
   TxRaw,
 } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
 import { buildGrantMsgForFee, buildGrantMsgForStaking, buildGrantMsgForTransfers } from './messages-builder';
-import { getOfflineSignerAmino } from 'cosmjs-utils';
 import { cosmosProtoRegistry, cosmosAminoConverters } from 'cosmos-js-telescope';
 
 // do not commit! replace with your own private key
@@ -30,6 +31,29 @@ const registry = new Registry([
 const aminoTypes = new AminoTypes({
   ...converters
 });
+
+const makeHdPath = (coinType = 118, account = 0) => {
+  return [
+    Slip10RawIndex.hardened(44),
+    Slip10RawIndex.hardened(coinType),
+    Slip10RawIndex.hardened(0),
+    Slip10RawIndex.normal(0),
+    Slip10RawIndex.normal(account)
+  ];
+}
+
+const getOfflineSignerAmino = async ({ mnemonic, chain }: any): Promise<Secp256k1HdWallet> => {
+  try {
+    const { bech32_prefix, slip44 } = chain;
+    const wallet = await Secp256k1HdWallet.fromMnemonic(mnemonic, {
+      prefix: bech32_prefix,
+      hdPaths: [makeHdPath(slip44, 0)]
+    });
+    return wallet;
+  } catch (e) {
+    throw new Error('Error while creating offline signer');
+  }
+};
 
 const createSigningClient = async () => {
   const offlineSigner = await getOfflineSignerAmino({

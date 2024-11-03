@@ -6,20 +6,22 @@
   "scripts": {
     "build": "tsc",
     "tx": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.32.4",
     "@cosmjs/encoding": "^0.32.4",
     "@cosmjs/proto-signing": "^0.32.4",
-    "@cosmjs/stargate": "0.32.4",
+    "@liftedinit/stargate": "0.32.4-ll.3",
     "@cosmjs/utils": "^0.32.4",
     "chain-registry": "^1.63.79",
     "cosmjs-types": "^0.9.0",
     "cosmjs-utils": "^0.1.0",
-    "cosmos-js-telescope": "^0.0.19",
+    "cosmos-js-telescope": "^0.0.30",
     "dayjs": "^1.11.13",
-    "mathjs": "^13.2.0"
+    "mathjs": "^13.2.0",
+    "patch-package": "^8.0.0"
   },
   "devDependencies": {
     "eslint-config-prettier": "^9.1.0",
