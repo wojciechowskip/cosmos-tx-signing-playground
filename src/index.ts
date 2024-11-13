@@ -1,4 +1,4 @@
-import { AminoConverters, AminoTypes, isDeliverTxSuccess, SigningStargateClient, StdFee } from '@liftedinit/stargate';
+import { AminoConverters, AminoTypes, isDeliverTxSuccess, SigningStargateClient, StdFee } from '@cosmjs/stargate';
 import { Registry } from '@cosmjs/proto-signing';
 import { Secp256k1HdWallet } from '@cosmjs/amino';
 import { Slip10RawIndex } from '@cosmjs/crypto';
@@ -137,3 +137,15 @@ const run = async () => {
 }
 
 run();
+
+// Setup for normal message builders
+// "@cosmjs/stargate": "0.32.4",
+// "cosmos-js-telescope": "^0.0.30",
+
+// Setup for message composers
+// "@cosmjs/stargate": "npm:@liftedinit/stargate@0.32.4-ll.3",
+// "cosmos-js-telescope": "0.0.33",
+//
+// "resolutions": {
+//   "**/@cosmjs/stargate": "npm:@liftedinit/stargate@0.32.4-ll.3"
+// }

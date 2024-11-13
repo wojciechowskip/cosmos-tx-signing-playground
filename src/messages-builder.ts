@@ -3,6 +3,8 @@ import { Coin } from 'cosmjs-types/cosmos/base/v1beta1/coin';
 import { coin } from '@cosmjs/stargate';
 import dayjs from 'dayjs';
 import { cosmos } from 'cosmos-js-telescope';
+import { MessageComposer as AuthzMessageComposer } from 'cosmos-js-telescope/cosmos/authz/v1beta1/tx.registry';
+import { MessageComposer as FeeGrantMessageComposer } from 'cosmos-js-telescope/cosmos/feegrant/v1beta1/tx.registry';
 
 const {
   MsgGrant,
@@ -72,9 +74,7 @@ export const buildGrantMsgForStaking = (
     chainType
   );
 
-  return {
-    typeUrl: COSMOS_MESSAGE_TYPE_URL.GRANT,
-    value: MsgGrant.fromPartial({
+  return AuthzMessageComposer.withTypeUrl.grant({
       granter: granterAddress,
       grantee: granteeAddress,
       grant: Grant.fromPartial({
@@ -92,8 +92,7 @@ export const buildGrantMsgForStaking = (
           ).finish(),
         },
       }),
-    }),
-  };
+  });
 };
 
 export const buildGrantMsgForTransfers = (
@@ -117,9 +116,7 @@ export const buildGrantMsgForTransfers = (
     authorizationValue.allowList = [granteeAddress];
   }
 
-  return {
-    typeUrl: COSMOS_MESSAGE_TYPE_URL.GRANT,
-    value: MsgGrant.fromPartial({
+  return AuthzMessageComposer.withTypeUrl.grant({
       granter: granterAddress,
       grantee: granteeAddress,
       grant: Grant.fromPartial({
@@ -130,15 +127,12 @@ export const buildGrantMsgForTransfers = (
             SendAuthorization.fromPartial(authorizationValue)
           ).finish(),
         },
-      }),
     }),
-  };
+  });
 };
 
 export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: string) => {
-  return {
-    typeUrl: COSMOS_MESSAGE_TYPE_URL.GRANT_ALLOWANCE,
-    value: MsgGrantAllowance.fromPartial({
+  return FeeGrantMessageComposer.withTypeUrl.grantAllowance({
       granter: granterAddress,
       grantee: granteeAddress,
       allowance: {
@@ -150,6 +144,5 @@ export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: stri
           })
         ).finish(),
       },
-    }),
-  };
+    });
 };
