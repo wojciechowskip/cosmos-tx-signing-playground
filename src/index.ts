@@ -5,7 +5,7 @@ import { Slip10RawIndex } from '@cosmjs/crypto';
 import {
   TxRaw,
 } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
-import { buildGrantMsgForFee, buildGrantMsgForStaking, buildGrantMsgForTransfers } from './messages-builder';
+import { buildGrantMsgForFee, buildGrantMsgForStaking, buildGrantMsgForTransfers } from './messages-composers';
 import { cosmosProtoRegistry, cosmosAminoConverters } from 'cosmos-js-telescope';
 
 // do not commit! replace with your own private key
@@ -138,14 +138,17 @@ const run = async () => {
 
 run();
 
-// Setup for normal message builders
+// Setup for normal message builders & composers
 // "@cosmjs/stargate": "0.32.4",
-// "cosmos-js-telescope": "^0.0.30",
+// "cosmos-js-telescope": "^0.0.34",
 
-// Setup for message composers
+// Setup for message composers only (v-next env on telescope config cause builders not to work anymore)
 // "@cosmjs/stargate": "npm:@liftedinit/stargate@0.32.4-ll.3",
 // "cosmos-js-telescope": "0.0.33",
 //
 // "resolutions": {
 //   "**/@cosmjs/stargate": "npm:@liftedinit/stargate@0.32.4-ll.3"
 // }
+
+// Setup to have working Grant + StakeAuth requires composers which does not do any encode stuff
+// "cosmos-js-telescope": "^0.0.35",
