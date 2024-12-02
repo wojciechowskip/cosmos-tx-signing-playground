@@ -11,7 +11,8 @@ import {
   StakeAuthorization_Validators,
 } from 'cosmos-js-telescope/cosmos/staking/v1beta1/authz';
 import { AllowedMsgAllowance, BasicAllowance } from 'cosmos-js-telescope/cosmos/feegrant/v1beta1/feegrant';
-
+import { MsgDelegate } from 'cosmos-js-telescope/cosmos/staking/v1beta1/tx';
+import { Any } from 'cosmos-js-telescope/google/protobuf/any';
 
 const chainType = 'COSMOS';
 
@@ -51,18 +52,10 @@ const getExpirationDate = () => {
 };
 
 
-// TODO This is not working unfortunately (yet)
 export const buildGrantMsgForStaking = (
   granterAddress: string,
   granteeAddress: string,
-  validatorAddresses: string[],
 ) => {
-  const expiredDate = getExpirationDate();
-
-  const maxTokens = formatCompoundSpendLimit(
-    chainType
-  );
-
   const grant = AuthzMessageComposer.fromPartial.grant({
     grantee: granteeAddress,
     granter: granterAddress,
@@ -70,12 +63,12 @@ export const buildGrantMsgForStaking = (
       authorization: StakeAuthorization.fromPartial({
         authorizationType: AuthorizationType.AUTHORIZATION_TYPE_DELEGATE,
         allowList: StakeAuthorization_Validators.fromPartial({
-          address: validatorAddresses,
+          address: [""],
           type: "cosmos-sdk/StakeAuthorization/AllowList",
         }),
-        maxTokens: null as any, // TODO not sure about it as well!
+        maxTokens: null as any,
       }),
-      expiration: null as any, // TODO this is null in manifestjs
+      expiration: null as any,
     }),
   });
 
@@ -84,7 +77,6 @@ export const buildGrantMsgForStaking = (
   return grant;
 };
 
-// TODO Works great, didnt tested expiredDate and maxTokens creation
 export const buildGrantMsgForTransfers = (
   granterAddress: string,
   granteeAddress: string,
@@ -102,16 +94,13 @@ export const buildGrantMsgForTransfers = (
         spendLimit: [spendLimit],
         allowList: [""], // The list MUST contain a value, otherwise the signed message and the message decoded by the server won't match as the field gets omitted
       }),
-      expiration: new Date(expiredDate.getDate()), // TODO this is null in manifestjs
+      expiration: new Date(expiredDate.getDate()),
     }),
   });
-
-  console.log(grant);
 
   return grant;
 };
 
-// TODO Works great, didnt tested expiredDate and maxTokens creation
 export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: string) => {
   const expiredDate = getExpirationDate();
 
@@ -121,7 +110,7 @@ export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: stri
     allowance: AllowedMsgAllowance.fromPartial({
       allowance: BasicAllowance.fromPartial({
         spendLimit: [{ denom: "uatom", amount: "1000" }],
-        expiration: null as any, //todo originaly it was null
+        expiration: null as any,
       }),
       allowedMessages: ["/cosmos.bank.v1beta1.MsgSend"],
     }),
@@ -129,3 +118,36 @@ export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: stri
 
   return feegrant;
 };
+
+export const buildExecDelegateMsg = (
+  granterAddress: string, granteeAddress: string, validatorAddress: string
+) => {
+  const msgDelegateBack = MsgDelegate.fromPartial({
+    delegatorAddress: granterAddress,
+    validatorAddress: validatorAddress,
+    amount: { denom: "uatom", amount: "10" },
+  });
+
+  const encodedMsgDelegate = Any.fromPartial({
+    typeUrl: "/cosmos.staking.v1beta1.MsgDelegate",
+    value: MsgDelegate.encode(msgDelegateBack).finish(),
+  });
+
+  const msgExec = AuthzMessageComposer.fromPartial.exec({
+    grantee: granteeAddress,
+    msgs: [encodedMsgDelegate],
+  });
+
+  return msgExec;
+}
+
+export const buildRevokeMsgForStaking = (
+  granterAddress: string, granteeAddress: string
+) => {
+
+  return AuthzMessageComposer.fromPartial.revoke({
+    granter: granterAddress,
+    grantee: granteeAddress,
+    msgTypeUrl: "/cosmos.staking.v1beta1.MsgDelegate",
+  });
+}
