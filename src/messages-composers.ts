@@ -11,11 +11,12 @@ import {
   StakeAuthorization_Validators,
 } from 'cosmos-js-telescope/cosmos/staking/v1beta1/authz';
 import { BasicAllowance } from 'cosmos-js-telescope/cosmos/feegrant/v1beta1/feegrant';
-import { MsgDelegate } from 'cosmos-js-telescope/cosmos/staking/v1beta1/tx';
+import { MsgDelegate, MsgBeginRedelegate } from 'cosmos-js-telescope/cosmos/staking/v1beta1/tx';
 import { Any } from 'cosmos-js-telescope/google/protobuf/any';
 import { MsgClaimRewards, MsgRedelegate } from 'cosmos-js-telescope/lavanet/lava/dualstaking/tx';
 import { MsgSend } from 'cosmos-js-telescope/cosmos/bank/v1beta1/tx';
 import { MsgExec } from 'cosmos-js-telescope/cosmos/authz/v1beta1/tx';
+import { Coin } from 'cosmos-js-telescope/cosmos/base/v1beta1/coin';
 
 const chainType = 'LAVA';
 
@@ -75,6 +76,38 @@ export const buildGrantMsgForStaking = (
   });
 
   return grant;
+};
+
+export const buildCockyTxToDoOptimizationDelegate = (
+  granterAddress: string,
+  granteeAddress: string,
+) => {
+  return AuthzMessageComposer.fromPartial.grant({
+    grantee: granteeAddress,
+    granter: granterAddress,
+    grant: Grant.fromPartial({
+      authorization: GenericAuthorization.fromPartial({
+        msg: '/cosmos.staking.v1beta1.MsgDelegate', // Change to desired message type
+      }),
+      expiration: null as any,
+    }),
+  });
+};
+
+export const buildCockyTxToDoOptimizationReDelegate = (
+  granterAddress: string,
+  granteeAddress: string,
+) => {
+  return AuthzMessageComposer.fromPartial.grant({
+    grantee: granteeAddress,
+    granter: granterAddress,
+    grant: Grant.fromPartial({
+      authorization: GenericAuthorization.fromPartial({
+        msg: '/cosmos.staking.v1beta1.MsgBeginRedelegate', // Using redelegation message type
+      }),
+      expiration: null as any,
+    }),
+  });
 };
 
 export const buildGrantMsgForProviderCompound = (
@@ -194,6 +227,31 @@ export const buildGrantMsgForFee = (granterAddress: string, granteeAddress: stri
   return feegrant;
 };
 
+export const buildExecRedelegateMsg = (
+  granterAddress: string, granteeAddress: string, from: string, to: string
+) => {
+  const msgDelegateBack = MsgBeginRedelegate.fromPartial({
+    delegatorAddress: granterAddress,
+    validatorSrcAddress: from,
+    validatorDstAddress: to,
+    amount: { denom: 'uatom', amount: '1' }
+  });
+
+  const encodedMsgDelegate = Any.fromPartial({
+    typeUrl: '/cosmos.staking.v1beta1.MsgBeginRedelegate',
+    value: MsgBeginRedelegate.encode(msgDelegateBack).finish(),
+  });
+
+  const msgExec = AuthzMessageComposer.fromPartial.exec({
+    grantee: granteeAddress,
+    msgs: [encodedMsgDelegate]
+  })
+
+  console.log('msgExec', msgExec);
+
+  return msgExec;
+}
+
 export const buildExecDelegateMsg = (
   granterAddress: string, granteeAddress: string, validatorAddress: string,
 ) => {
@@ -203,20 +261,20 @@ export const buildExecDelegateMsg = (
     amount: { denom: 'uatom', amount: '10' },
   });
 
+  console.log('msgDelegateBack', msgDelegateBack);
+
+
   const encodedMsgDelegate = Any.fromPartial({
     typeUrl: '/cosmos.staking.v1beta1.MsgDelegate',
     value: MsgDelegate.encode(msgDelegateBack).finish(),
   });
 
-  const msgExec = {
-    typeUrl: '/cosmos.authz.v1beta1.MsgExec',
-    value: MsgExec.encode(
-      MsgExec.fromPartial({
-        grantee: granteeAddress,
-        msgs: [encodedMsgDelegate],
-      }),
-    ).finish(),
-  };
+  const msgExec = AuthzMessageComposer.fromPartial.exec({
+    grantee: granteeAddress,
+    msgs: [encodedMsgDelegate]
+  })
+
+  console.log('msgExec', msgExec);
 
   return msgExec;
 };

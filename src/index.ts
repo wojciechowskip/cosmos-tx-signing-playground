@@ -4,14 +4,10 @@ import {
   TxRaw,
 } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
 import {
-  buildGrantMsgForFee,
-  buildGrantMsgForStaking,
-  buildGrantMsgForTransfers,
-  buildGrantMsgForProviderCompound,
-  buildLavaCompound,
-  buildGrantMsgForProviderRwrdClaim,
-  buildProviderRewardClaim,
-  buildTransferExecMsg,
+
+  buildCockyTxToDoOptimizationDelegate,
+  buildCockyTxToDoOptimizationReDelegate,
+  buildExecDelegateMsg, buildExecRedelegateMsg,
 } from './messages-composers';
 import {
   cosmosProtoRegistry,
@@ -23,16 +19,16 @@ import { createRPCQueryClient } from 'cosmos-js-telescope/lavanet/rpc.query';
 import { createSigningClient } from './signer';
 import { getDefaultGasFee } from './default-gas-fee';
 
-const granteeAddress = 'lava@1fgrg3uax5td2ex05dwwdydgrs4kf9hl2s7r8ql';
-const granterAddress = 'lava@1yhf8834qffd32m887sukr3l9382zjhrwxe5p8z';
+const granteeAddress = 'cosmos1fgrg3uax5td2ex05dwwdydgrs4kf9hl2gx5z8j';
+const granterAddress = 'cosmos1yhf8834qffd32m887sukr3l9382zjhrw7pryq0';
 const memo = '';
 const privKey = '';
 
 const emptyValidatorsList = [''];
-const validatorsList = ['cosmosvaloper1qje005kmeztf34pec5f6fd35p833ynvagdkqan'];
+const validatorsList = [''];
 
-const rpcEndpoint = 'https://rpc.lavenderfive.com/lava';
-const restEndpoint = 'https://rest.lavenderfive.com/lava';
+const rpcEndpoint = '';
+const restEndpoint = '';
 
 console.log('Starting script... ✨');
 
@@ -55,47 +51,34 @@ const aminoTypes = new AminoTypes({
 });
 
 const createMsgs = () => {
-  // Staking
-  const stakingMsg = buildGrantMsgForStaking(granterAddress, granteeAddress);
+  //
+  const delegateGrant = buildCockyTxToDoOptimizationDelegate(granterAddress, granteeAddress);
 
-  // Transfer
-  const transferMsg = buildGrantMsgForTransfers(granterAddress, granteeAddress);
+  //
+  const redelegateGrant = buildCockyTxToDoOptimizationReDelegate(granterAddress, granteeAddress);
 
-  // Fee
-  const feeMSg = buildGrantMsgForFee(granterAddress, granteeAddress);
+  const execDelegate = buildExecDelegateMsg(granterAddress, granteeAddress, 'cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn');
 
-  // Lava grant to compound provider rewards
-  const lavaProviderCompoundPermission = buildGrantMsgForProviderCompound(granterAddress, granteeAddress);
+  const execRedelegate = buildExecRedelegateMsg(granterAddress, granteeAddress, 'cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn', 'cosmosvaloper1x8efhljzvs52u5xa6m7crcwes7v9u0nlwdgw30');
 
-  // Lava grant to claim rewards
-  const lavaProviderClaimRewardsPermission = buildGrantMsgForProviderRwrdClaim(granterAddress, granteeAddress);
-
-  // Lava provider reward claim
-  const lavaProviderRewardClaim = buildProviderRewardClaim(granterAddress, granteeAddress);
-
-  // Lava provider compoundg / delegation
-  const lavaCompound = buildLavaCompound(granterAddress, granteeAddress);
-
-  // exec tranfer
-  const transferExec = buildTransferExecMsg(granterAddress, granteeAddress);
-
-  return [lavaProviderCompoundPermission];
+  return [delegateGrant, redelegateGrant];
 };
 
 const signAndBroadcastTx = async () => {
   try {
     const client = await createSigningClient(
-      false,
-      { memo },
+      true,
+      { privKey },
       rpcEndpoint,
       {
         registry,
         aminoTypes,
       },
+      'cosmoshub'
     );
 
     const msgs = createMsgs();
-    const gasFee: StdFee = getDefaultGasFee('ulava');
+    const gasFee: StdFee = getDefaultGasFee('uatom');
 
     // @ts-ignore
     const signed = await client.sign(
@@ -135,61 +118,15 @@ const queryData = async () => {
     grantee: granteeAddress,
   });
   //
-  console.log('grants', grants.grants.filter((grant) => grant.granter === granterAddress));
-  // console.log('grants', grants.grants);
+  console.log('grants', grants);
 
-  // queryClient.lavanet.lava.dualstaking.delegatorProviders({
-  //   delegator: 'lava@1yhf8834qffd32m887sukr3l9382zjhrwxe5p8z',
-  //   withPending: true,
-  // }).then((res) => {
-  //   console.log('res', res);
-  // }).catch((e) => {
-  //   console.log('e', e);
-  // });
-  //
-  // console.log('delegatorRewards ---------')
-  // queryClient.lavanet.lava.dualstaking.delegatorRewards({
-  //   delegator:'lava@1yhf8834qffd32m887sukr3l9382zjhrwxe5p8z',
-  //   provider: 'lava@18rtt3ka0jc85qvvcnct0t7ayq6fva7692k9kvh',
-  //   chainId: '*',
-  // }).then((res) => {
-  //   console.log('res', JSON.stringify(res));
-  // }).catch((e) => {
-  //   console.log('e', e);
-  //   console.log('e', e);
-  // });
-  //
-  // console.log('delegatorRewardsList ---------')
-  // queryClient.lavanet.lava.dualstaking.delegatorRewardsList({
-  //   delegator: 'lava@1yhf8834qffd32m887sukr3l9382zjhrwxe5p8z',
-  //   provider: 'lava@1pew9nxdepfnap3mkkcmvkemls4c5uets9rqq2h',
-  //   chainId: '*',
-  // }).then((res) => {
-  //   console.log('res', JSON.stringify(res));
-  // }).catch((e) => {
-  //   console.log('e', e);
-  // });
 };
 
 const run = async () => {
-  // await signAndBroadcastTx();
+  await signAndBroadcastTx();
 
   // await queryData();
 };
 
 run();
 
-// Setup for normal message builders & composers
-// "@cosmjs/stargate": "0.32.4",
-// "cosmos-js-telescope": "^0.0.34",
-
-// Setup for message composers only (v-next env on telescope config cause builders not to work anymore)
-// "@cosmjs/stargate": "npm:@liftedinit/stargate@0.32.4-ll.3",
-// "cosmos-js-telescope": "0.0.33",
-//
-// "resolutions": {
-//   "**/@cosmjs/stargate": "npm:@liftedinit/stargate@0.32.4-ll.3"
-// }
-
-// Setup to have working Grant + StakeAuth requires composers which does not do any encode stuff
-// "cosmos-js-telescope": "^0.0.35",

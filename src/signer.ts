@@ -30,19 +30,18 @@ const getOfflineSignerAminoFromMnemonic = async ({ mnemonic, chain }: any): Prom
   }
 };
 
-const getOfflineSignerAminoFromPrivKey = async ({ privKey }: any): Promise<Secp256k1Wallet> => {
+const getOfflineSignerAminoFromPrivKey = async ({ privKey, chainPrefix }: any): Promise<Secp256k1Wallet> => {
   try {
-    const wallet = await Secp256k1Wallet.fromKey(fromHex(privKey), 'lava@');
+    const wallet = await Secp256k1Wallet.fromKey(fromHex(privKey), chainPrefix);
     return wallet;
   } catch (e) {
     throw new Error('Error while creating offline signer');
   }
 };
 
-const getOfflineSignerProtoFromPrivKey = async ({ privKey }: any): Promise<DirectSecp256k1Wallet> => {
+const getOfflineSignerProtoFromPrivKey = async ({ privKey, chainPrefix }: any): Promise<DirectSecp256k1Wallet> => {
   try {
-    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privKey), 'lava@');
-    console.log('wallet', wallet);
+    const wallet = await DirectSecp256k1Wallet.fromKey(fromHex(privKey), chainPrefix);
     return wallet;
   } catch (e) {
     console.log('e', e);
@@ -67,7 +66,7 @@ const getOfflineSignerProtoFromMnemonic = async ({ mnemonic, chain }: any): Prom
 
 export const createSigningClient = async (amino: boolean, {
   privKey, memo,
-}: { privKey?: string, memo?: string }, rpcEndpoint: string, signingOptions: SigningStargateClientOptions) => {
+}: { privKey?: string, memo?: string }, rpcEndpoint: string, signingOptions: SigningStargateClientOptions, chainName: string) => {
   if (privKey && memo) {
     throw new Error('Both memo and priv key found, use only one!');
   } else if (!privKey && !memo) {
@@ -78,27 +77,30 @@ export const createSigningClient = async (amino: boolean, {
 
   const useMemo = memo && !privKey;
 
-  const chain = chains.find(({ chain_name }) => chain_name === 'lava');
+  const chain = chains.find(({ chain_name }) => chain_name === chainName);
+
   if (amino) {
     if (useMemo) {
       offlineSigner = await getOfflineSignerAminoFromMnemonic({
-        memo: memo,
+        mnemonic: memo,
         chain,
       });
     } else {
       offlineSigner = await getOfflineSignerAminoFromPrivKey({
         privKey: privKey,
+        chainPrefix: chain?.bech32_prefix
       });
     }
   } else {
     if (useMemo) {
       offlineSigner = await getOfflineSignerProtoFromMnemonic({
-        memo: memo,
+        mnemonic: memo,
         chain,
       });
     } else {
       offlineSigner = await getOfflineSignerProtoFromPrivKey({
         privKey: privKey,
+        chainPrefix: chain?.bech32_prefix
       });
     }
   }
