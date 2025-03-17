@@ -5,7 +5,19 @@ import { chains } from 'chain-registry';
 import { SigningStargateClient } from '@cosmjs/stargate';
 import { fromHex } from '@cosmjs/encoding';
 import { SigningStargateClientOptions } from '@cosmjs/stargate/build/signingstargateclient';
+import { HttpBatchClient, Tendermint37Client } from '@cosmjs/tendermint-rpc';
 
+const getTendermint37Client = async (rpcEndpoint: string) => {
+  return await Tendermint37Client.create(
+    getHttpBatchClient(rpcEndpoint)
+  );
+}
+
+const getHttpBatchClient = (rpcEndpoint: string) => {
+  return new HttpBatchClient(rpcEndpoint, {
+    dispatchInterval: 2000,
+  });
+}
 
 const makeHdPath = (coinType = 118, account = 0) => {
   return [
@@ -79,6 +91,8 @@ export const createSigningClient = async (amino: boolean, {
 
   const chain = chains.find(({ chain_name }) => chain_name === chainName);
 
+  console.log('chain', chain)
+
   if (amino) {
     if (useMemo) {
       offlineSigner = await getOfflineSignerAminoFromMnemonic({
@@ -88,7 +102,7 @@ export const createSigningClient = async (amino: boolean, {
     } else {
       offlineSigner = await getOfflineSignerAminoFromPrivKey({
         privKey: privKey,
-        chainPrefix: chain?.bech32_prefix
+        chainPrefix: chain?.bech32_prefix || 'kii'
       });
     }
   } else {
@@ -100,7 +114,7 @@ export const createSigningClient = async (amino: boolean, {
     } else {
       offlineSigner = await getOfflineSignerProtoFromPrivKey({
         privKey: privKey,
-        chainPrefix: chain?.bech32_prefix
+        chainPrefix: chain?.bech32_prefix || 'kii'
       });
     }
   }
@@ -109,7 +123,9 @@ export const createSigningClient = async (amino: boolean, {
     return Promise.reject(new Error('Offline signer not available'));
   }
 
-  return SigningStargateClient.connectWithSigner(rpcEndpoint, offlineSigner, {
+  const tendermintRpc = await getTendermint37Client(rpcEndpoint);
+
+  return SigningStargateClient.createWithSigner(tendermintRpc as any, offlineSigner, {
     ...signingOptions,
   });
 };

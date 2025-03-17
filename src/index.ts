@@ -1,4 +1,4 @@
-import { AminoConverters, AminoTypes, isDeliverTxSuccess, StdFee } from '@cosmjs/stargate';
+import { AminoConverters, AminoTypes, isDeliverTxSuccess, SigningStargateClient, StdFee } from '@cosmjs/stargate';
 import { Registry } from '@cosmjs/proto-signing';
 import {
   TxRaw,
@@ -6,29 +6,41 @@ import {
 import {
 
   buildCockyTxToDoOptimizationDelegate,
-  buildCockyTxToDoOptimizationReDelegate,
-  buildExecDelegateMsg, buildExecRedelegateMsg,
+  buildCockyTxToDoOptimizationReDelegate, buildDelegate,
+  buildExecDelegateMsg, buildExecRedelegateMsg, buildRevokeMsgForStaking,
 } from './messages-composers';
 import {
   cosmosProtoRegistry,
   cosmosAminoConverters,
   lavanetAminoConverters,
-  lavanetProtoRegistry,
+  lavanetProtoRegistry, cosmos,
 } from 'cosmos-js-telescope';
 import { createRPCQueryClient } from 'cosmos-js-telescope/lavanet/rpc.query';
 import { createSigningClient } from './signer';
 import { getDefaultGasFee } from './default-gas-fee';
 
-const granteeAddress = 'cosmos1fgrg3uax5td2ex05dwwdydgrs4kf9hl2gx5z8j';
-const granterAddress = 'cosmos1yhf8834qffd32m887sukr3l9382zjhrw7pryq0';
+import { bech32 } from 'bech32';
+import { ethers } from 'ethers';
+import query = cosmos.base.query;
+
+// function evmToCosmosAddress(evmAddress: string, prefix = "ki") {
+//   const stripped = evmAddress.replace(/^0x/, "");
+//   const bytes = ethers.getBytes("0x" + stripped);
+//   return bech32.encode(prefix, bech32.toWords(bytes));
+// }
+//
+// console.log(evmToCosmosAddress("0x3c21b7e53aa48731a735bc5b523db938072bd6b8", "kii"));
+
+const granteeAddress = 'cosmos1zckqq52ax0g328quqhwhht4l4n0z22rxrymxka';
+const granterAddress = 'kii1yhf8834qffd32m887sukr3l9382zjhrw82ewks';
 const memo = '';
 const privKey = '';
 
 const emptyValidatorsList = [''];
 const validatorsList = [''];
 
-const rpcEndpoint = '';
-const restEndpoint = '';
+const rpcEndpoint = 'https://rpc.uno.sentry.testnet.v3.kiivalidator.com/';
+const restEndpoint = 'https://lcd.uno.sentry.testnet.v3.kiivalidator.com/';
 
 console.log('Starting script... ✨');
 
@@ -61,26 +73,29 @@ const createMsgs = () => {
 
   const execRedelegate = buildExecRedelegateMsg(granterAddress, granteeAddress, 'cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn', 'cosmosvaloper1x8efhljzvs52u5xa6m7crcwes7v9u0nlwdgw30');
 
-  return [delegateGrant, redelegateGrant];
+  const revoke = buildRevokeMsgForStaking(granterAddress, granteeAddress);
+
+  const delegate = buildDelegate(granterAddress, 'kiivaloper1esxwa5vm8rae2n2te7ea3f49c70tjemyh4uqq5');
+
+  return [delegate];
 };
 
 const signAndBroadcastTx = async () => {
   try {
-    const client = await createSigningClient(
-      true,
+    const client: SigningStargateClient = await createSigningClient(
+      false,
       { privKey },
       rpcEndpoint,
       {
         registry,
         aminoTypes,
       },
-      'cosmoshub'
+      'kiichain',
     );
 
     const msgs = createMsgs();
-    const gasFee: StdFee = getDefaultGasFee('uatom');
+    const gasFee: StdFee = getDefaultGasFee('ukii');
 
-    // @ts-ignore
     const signed = await client.sign(
       granterAddress,
       msgs,
@@ -92,12 +107,12 @@ const signAndBroadcastTx = async () => {
       Uint8Array.from(TxRaw.encode(signed).finish()),
     );
 
-    if (isDeliverTxSuccess(broadcastRes)) {
-
-    } else {
-      console.error('Transaction failed >>', broadcastRes.rawLog);
-      new Error('Transaction failed');
-    }
+    // if (isDeliverTxSuccess(broadcastRes)) {
+    //
+    // } else {
+    //   console.error('Transaction failed >>', broadcastRes.rawLog);
+    //   new Error('Transaction failed');
+    // }
 
   } catch (e) {
     console.error('Error during script run', e);
@@ -114,11 +129,21 @@ const queryData = async () => {
   //
   // console.log('feegrants', feegrants.allowances);
   //
-  const grants = await queryClient.cosmos.authz.v1beta1.granteeGrants({
-    grantee: granteeAddress,
+  const grants = await queryClient.cosmos.authz.v1beta1.granterGrants({
+    granter: granterAddress,
   });
   //
-  console.log('grants', grants);
+  // console.log('grants', grants);
+  const grantsForGrantee = grants.grants.filter(grant => grant.grantee === granteeAddress);
+  console.log('grants', grantsForGrantee);
+
+  // const delegations = await queryClient.cosmos.staking.v1beta1.delegatorDelegations({
+  //   delegatorAddr: 'cosmos1hlm58hvene3nwkvs8gx68afslnfuhvlcyk0qtt'
+  // })
+  //
+  // console.log(delegations.delegationResponses[0]);
+
+
 
 };
 

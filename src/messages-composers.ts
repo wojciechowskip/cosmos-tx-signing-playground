@@ -2,7 +2,7 @@ import { coin } from '@cosmjs/stargate';
 import dayjs from 'dayjs';
 import { MessageComposer as AuthzMessageComposer } from 'cosmos-js-telescope/cosmos/authz/v1beta1/tx.registry';
 import { MessageComposer as FeeGrantMessageComposer } from 'cosmos-js-telescope/cosmos/feegrant/v1beta1/tx.registry';
-
+import { MessageComposer as StakeMessageComposer } from 'cosmos-js-telescope/cosmos/staking/v1beta1/tx.registry';
 import { GenericAuthorization, Grant } from 'cosmos-js-telescope/cosmos/authz/v1beta1/authz';
 import { SendAuthorization } from 'cosmos-js-telescope/cosmos/bank/v1beta1/authz';
 import {
@@ -197,8 +197,6 @@ export const buildGrantMsgForTransfers = (
     chainType,
   );
 
-  console.log('chainType', chainType);
-
   const grant = AuthzMessageComposer.fromPartial.grant({
     grantee: granteeAddress,
     granter: granterAddress,
@@ -247,10 +245,21 @@ export const buildExecRedelegateMsg = (
     msgs: [encodedMsgDelegate]
   })
 
-  console.log('msgExec', msgExec);
 
   return msgExec;
 }
+
+export const buildDelegate = (
+  creator: string, validator: string
+) => {
+  return StakeMessageComposer.fromPartial.delegate({
+    delegatorAddress: creator,
+    validatorAddress: validator,
+    amount: { denom: 'ukii', amount: '1' },
+  })
+}
+
+
 
 export const buildExecDelegateMsg = (
   granterAddress: string, granteeAddress: string, validatorAddress: string,
@@ -261,9 +270,6 @@ export const buildExecDelegateMsg = (
     amount: { denom: 'uatom', amount: '10' },
   });
 
-  console.log('msgDelegateBack', msgDelegateBack);
-
-
   const encodedMsgDelegate = Any.fromPartial({
     typeUrl: '/cosmos.staking.v1beta1.MsgDelegate',
     value: MsgDelegate.encode(msgDelegateBack).finish(),
@@ -273,8 +279,6 @@ export const buildExecDelegateMsg = (
     grantee: granteeAddress,
     msgs: [encodedMsgDelegate]
   })
-
-  console.log('msgExec', msgExec);
 
   return msgExec;
 };
@@ -307,9 +311,24 @@ export const buildRevokeMsgForStaking = (
   granterAddress: string, granteeAddress: string,
 ) => {
 
-  return AuthzMessageComposer.fromPartial.revoke({
+  // const delegate = AuthzMessageComposer.fromPartial.revoke({
+  //   granter: granterAddress,
+  //   grantee: granteeAddress,
+  //   msgTypeUrl: '/cosmos.staking.v1beta1.MsgBeginRedelegate',
+  // });
+
+  const send = AuthzMessageComposer.fromPartial.revoke({
     granter: granterAddress,
     grantee: granteeAddress,
-    msgTypeUrl: '/cosmos.staking.v1beta1.MsgDelegate',
+    msgTypeUrl: '/cosmos.bank.v1beta1.SendAuthorization',
   });
+
+
+
+  // const feeGrant = FeeGrantMessageComposer.fromPartial.revokeAllowance({
+  //   granter: granterAddress,
+  //   grantee: granteeAddress,
+  // });
+
+  return [send];
 };

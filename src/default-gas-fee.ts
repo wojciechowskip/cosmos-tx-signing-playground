@@ -3,9 +3,9 @@ export const getDefaultGasFee = (denom: string) => {
     amount: [
       {
         denom: denom, // Replace 'uatom' with the appropriate token denom for your chain
-        amount: '10000', // Adjust this value based on chain's gas price
+        amount: '200000', // Adjust this value based on the chain's gas price
       },
     ],
-    gas: '1000000', // Medium gas limit
+    gas: '10000000', // Updated gas limit to not exceed the block's max gas limit
   };
 }
